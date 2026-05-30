@@ -24,6 +24,8 @@ type Photo = {
   image_url: string;
   lat: number;
   lng: number;
+  caption: string | null;
+  created_at: string;
 };
 
 export default function Page() {
@@ -33,6 +35,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [posted, setPosted] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [caption, setCaption] = useState("");
 
   async function loadPhotos() {
     const { data } = await supabase
@@ -106,6 +109,7 @@ export default function Page() {
         image_url: imageUrl,
         lat: location.lat,
         lng: location.lng,
+        caption,
         created_at: new Date().toISOString(),
       });
 
@@ -127,145 +131,170 @@ export default function Page() {
     setLocation(null);
     setStatus("");
     setPosted(false);
+    setCaption("");
   }
+  
+  const uniqueLocations = new Set(
+    photos
+      .map((p) => p.caption?.trim())
+      .filter(Boolean)
+  ).size;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-[#12082a] via-[#4c1d95] to-[#8b5cf6] flex flex-col items-center px-6 py-8">
+return (
+  <div className="min-h-screen bg-gradient-to-b from-[#12082a] via-[#4c1d95] to-[#8b5cf6] flex flex-col items-center px-6 py-8">
 
-      <div className="w-full max-w-md text-center mb-8">
-        <h1 className="text-5xl font-black tracking-tight text-white">
-          HELP MAP CAMPUS
-        </h1>
+    <div className="w-full max-w-md text-center mb-8">
 
-        <p className="text-purple-200 mt-3 text-sm">
-          Build the living map of campus.
-        </p>
+      <div className="text-6xl font-black text-white">
+        {uniqueLocations}
       </div>
 
-      {posted ? (
-        <div className="w-full max-w-md space-y-5">
+      <div className="text-purple-200 text-sm mt-2">
+        Locations Mapped
+      </div>
 
-          <div className="aspect-[3/4] rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center">
+      <h1 className="text-3xl font-bold text-white mt-6">
+        Campus
+      </h1>
 
-            <div className="text-center">
-              <div className="text-5xl mb-4">✨</div>
+    </div>
 
-              <div className="text-white text-xl font-bold">
-                Posted
-              </div>
+    {posted ? (
+      <div className="w-full max-w-md space-y-5">
 
-              <div className="text-purple-200 mt-2">
-                Your photo is now part of the map.
-              </div>
+        <div className="aspect-[3/4] rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center">
+
+          <div className="text-center">
+            <div className="text-5xl mb-4">✨</div>
+
+            <div className="text-white text-xl font-bold">
+              Posted
             </div>
 
+            <div className="text-purple-200 mt-2">
+              Your photo is now part of the map.
+            </div>
           </div>
-
-          <button
-            onClick={reset}
-            className="w-full py-4 rounded-3xl bg-white text-black font-bold"
-          >
-            Post Another
-          </button>
 
         </div>
-      ) : (
-        <>
-          <div className="w-full max-w-md mb-5">
 
-            <div className="aspect-[3/4] rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden flex items-center justify-center">
+        <button
+          onClick={reset}
+          className="w-full py-4 rounded-3xl bg-white text-black font-bold"
+        >
+          Post Another
+        </button>
 
-              {file ? (
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt="preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="text-center text-white">
-                  <div className="text-6xl mb-4">📸</div>
+      </div>
+    ) : (
+      <>
+        <div className="w-full max-w-md mb-5">
 
-                  <div className="font-semibold">
-                    Capture a Moment
-                  </div>
+          <div className="aspect-[3/4] rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden flex items-center justify-center">
 
-                  <div className="text-sm text-purple-200 mt-2">
-                    Help map campus life
-                  </div>
-                </div>
-              )}
-
-            </div>
-
-          </div>
-
-          <div className="w-full max-w-md mb-4 text-center">
-
-            {location ? (
-              <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-500/20 border border-green-400/30 text-green-100 text-sm">
-                📍 Location Added
-              </div>
+            {file ? (
+              <img
+                src={URL.createObjectURL(file)}
+                alt="preview"
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 border border-white/20 text-purple-100 text-sm">
-                No Location Yet
+              <div className="text-center text-white">
+                <div className="text-6xl mb-4">📸</div>
+
+                <div className="font-semibold">
+                  Capture a Moment
+                </div>
+
+                <div className="text-sm text-purple-200 mt-2">
+                  Add a place to the map
+                </div>
               </div>
             )}
 
           </div>
 
-          <div className="w-full max-w-md space-y-3">
-
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) =>
-                setFile(e.target.files?.[0] ?? null)
-              }
-              className="hidden"
-              id="camera"
-            />
-
-            <label
-              htmlFor="camera"
-              className="block w-full text-center py-4 rounded-3xl bg-white text-black font-bold cursor-pointer"
-            >
-              Take Photo
-            </label>
-
-            <button
-              onClick={handleAddLocation}
-              className="w-full py-4 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 text-white font-semibold"
-            >
-              Add Location
-            </button>
-
-            <button
-              onClick={upload}
-              disabled={!file || !location || loading}
-              className="w-full py-4 rounded-3xl bg-white text-black font-bold disabled:opacity-40"
-            >
-              {loading ? "Uploading..." : "Share"}
-            </button>
-
-            <div className="text-center text-sm text-purple-100 pt-2">
-              {status}
-            </div>
-
-          </div>
-        </>
-      )}
-
-      <div className="w-full max-w-5xl mt-12">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[32px] p-4">
-          <h2 className="text-white font-bold text-xl mb-4">
-            Campus Map
-          </h2>
-
-          <PhotoMap photos={photos} />
         </div>
+
+        <div className="w-full max-w-md mb-4 text-center">
+
+          {location ? (
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-500/20 border border-green-400/30 text-green-100 text-sm">
+              📍 Location Added
+            </div>
+          ) : (
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 border border-white/20 text-purple-100 text-sm">
+              No Location Yet
+            </div>
+          )}
+
+        </div>
+
+        <div className="w-full max-w-md space-y-3">
+
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) =>
+              setFile(e.target.files?.[0] ?? null)
+            }
+            className="hidden"
+            id="camera"
+          />
+
+          <label
+            htmlFor="camera"
+            className="block w-full text-center py-4 rounded-3xl bg-white text-black font-bold cursor-pointer"
+          >
+            Take Photo
+          </label>
+
+          <button
+            onClick={handleAddLocation}
+            className="w-full py-4 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 text-white font-semibold"
+          >
+            Add Location
+          </button>
+
+          <input
+            type="text"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Location name"
+            className="w-full py-4 px-4 rounded-3xl bg-white text-black font-medium outline-none"
+          />
+
+          <button
+            onClick={upload}
+            disabled={!file || !location || !caption.trim() || loading}
+            className="w-full py-4 rounded-3xl bg-white text-black font-bold disabled:opacity-40"
+          >
+            {loading ? "Uploading..." : "Share"}
+          </button>
+
+          <div className="text-center text-sm text-purple-100 pt-2">
+            {status}
+          </div>
+
+        </div>
+      </>
+    )}
+
+    <div className="w-full max-w-5xl mt-12">
+
+      <div className="text-white text-center mb-4">
+        <h2 className="text-2xl font-bold">
+          Campus Map
+        </h2>
+      </div>
+
+      <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[32px] p-4">
+        <PhotoMap photos={photos} />
       </div>
 
     </div>
-  );
+
+  </div>
+);
 }
