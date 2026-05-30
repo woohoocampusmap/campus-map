@@ -99,7 +99,7 @@ return (
     {/* Header */}
     <div className="w-full max-w-md text-center mb-8">
       <h1 className="text-5xl font-black tracking-tight text-white">
-        MAPCAMPUS
+        HELP MAP CAMPUS
       </h1>
 
       <p className="text-purple-200 mt-3 text-sm">
