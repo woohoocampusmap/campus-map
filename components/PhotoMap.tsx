@@ -9,7 +9,7 @@ type Photo = {
   image_url: string;
   lat: number;
   lng: number;
-  caption: string;
+  caption: string | null;
   created_at: string;
 };
 
@@ -72,7 +72,7 @@ export default function PhotoMap({
               />
 
               <div className="mt-3 font-semibold">
-                {photo.caption}
+                {photo.caption ?? "Unnamed Location"}
               </div>
 
               <div className="text-xs text-gray-500 mt-1">
