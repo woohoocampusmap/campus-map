@@ -179,13 +179,9 @@ export default function Page() {
         </div>
 
         <h1 className="text-3xl font-bold text-white mt-6">
-          Northwestern Campus
-
+          Campus
         </h1>
 
-        <text className="text-3xl text-white mt-4">
-          Help me take photos of campus so we can see how it changes over time for my senior project
-        </text>
       </div>
 
       {posted ? (
@@ -292,10 +288,10 @@ export default function Page() {
                   <div>
                     <div className="font-bold mb-2">Location access denied</div>
                     <div className="text-xs">
-                      Safari: aA → Website Settings → Location → Allow
+                      Safari: Phone Settings → Safari → Location → Allow
                     </div>
                     <div className="text-xs mt-1">
-                      Chrome/Firefox: Lock icon → Location → Allow
+                      Chrome: Phone Settings → Chrome → Location → Allow
                     </div>
                   </div>
                 )}
