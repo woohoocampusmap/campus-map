@@ -36,6 +36,7 @@ export default function Page() {
   const [posted, setPosted] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [caption, setCaption] = useState("");
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   async function loadPhotos() {
     const { data } = await supabase
@@ -51,7 +52,6 @@ export default function Page() {
   useEffect(() => {
     loadPhotos();
   }, []);
-
 
   function getLocation(): Promise<Location> {
     return new Promise((resolve, reject) => {
@@ -73,12 +73,12 @@ export default function Page() {
       );
     });
   }
+
   async function handleAddLocation() {
-    alert("Button clicked");
+    setLocationError(null);
 
     if (!navigator.geolocation) {
-      alert("Geolocation not supported");
-      setStatus("Geolocation not supported");
+      setLocationError("geolocation-not-supported");
       return;
     }
 
@@ -86,36 +86,24 @@ export default function Page() {
 
     try {
       const loc = await getLocation();
-
-      alert(
-        `Success: ${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`
-      );
-
       setLocation(loc);
       setStatus("Location locked in ✔");
+      setLocationError(null);
     } catch (err: any) {
       console.log(err);
-
-      alert(
-        JSON.stringify({
-          code: err?.code,
-          message: err?.message,
-        })
-      );
+      setStatus("");
 
       if (err?.code === 1) {
-        setStatus("Location permission denied");
+        setLocationError("permission-denied");
+      } else if (err?.code === 2) {
+        setLocationError("position-unavailable");
+      } else if (err?.code === 3) {
+        setLocationError("timeout");
       } else {
-        setStatus(
-          err?.message || "Could not get location"
-        );
+        setLocationError("unknown-error");
       }
     }
   }
-
-
-
-
 
   async function upload() {
     if (!file || !location) return;
@@ -168,182 +156,214 @@ export default function Page() {
     setStatus("");
     setPosted(false);
     setCaption("");
+    setLocationError(null);
   }
-  
+
   const uniqueLocations = new Set(
     photos
       .map((p) => p.caption?.trim())
       .filter(Boolean)
   ).size;
 
-return (
-  <div className="min-h-screen bg-gradient-to-b from-[#12082a] via-[#4c1d95] to-[#8b5cf6] flex flex-col items-center px-6 py-8">
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#12082a] via-[#4c1d95] to-[#8b5cf6] flex flex-col items-center px-6 py-8">
 
-    <div className="w-full max-w-md text-center mb-8">
+      <div className="w-full max-w-md text-center mb-8">
 
-      <div className="text-6xl font-black text-white">
-        {uniqueLocations}
-      </div>
-
-      <div className="text-purple-200 text-sm mt-2">
-        Locations Mapped
-      </div>
-
-      <h1 className="text-3xl font-bold text-white mt-6">
-        Campus
-      </h1>
-
-    </div>
-
-    {posted ? (
-      <div className="w-full max-w-md space-y-5">
-
-        <div className="aspect-[3/4] rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center">
-
-          <div className="text-center">
-            <div className="text-5xl mb-4">✨</div>
-
-            <div className="text-white text-xl font-bold">
-              Posted
-            </div>
-
-            <div className="text-purple-200 mt-2">
-              Your photo is now part of the map.
-            </div>
-          </div>
-
+        <div className="text-6xl font-black text-white">
+          {uniqueLocations}
         </div>
 
-        <button
-          onClick={reset}
-          className="w-full py-4 rounded-3xl bg-white text-black font-bold"
-        >
-          Post Another
-        </button>
+        <div className="text-purple-200 text-sm mt-2">
+          Locations Mapped
+        </div>
 
+        <h1 className="text-3xl font-bold text-white mt-6">
+          Northwestern Campus
+
+        </h1>
+
+        <text className="text-3xl text-white mt-4">
+          Help me take photos of campus so we can see how it changes over time for my senior project
+        </text>
       </div>
-    ) : (
-      <>
-        <div className="w-full max-w-md mb-5">
 
-          <div className="aspect-[3/4] rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden flex items-center justify-center">
+      {posted ? (
+        <div className="w-full max-w-md space-y-5">
 
-            {file ? (
-              <img
-                src={URL.createObjectURL(file)}
-                alt="preview"
-                className="w-full h-full object-cover"
-              />
+          <div className="aspect-[3/4] rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center">
+
+            <div className="text-center">
+              <div className="text-5xl mb-4">✨</div>
+
+              <div className="text-white text-xl font-bold">
+                Posted
+              </div>
+
+              <div className="text-purple-200 mt-2">
+                Your photo is now part of the map.
+              </div>
+            </div>
+
+          </div>
+
+          <button
+            onClick={reset}
+            className="w-full py-4 rounded-3xl bg-white text-black font-bold"
+          >
+            Post Another
+          </button>
+
+        </div>
+      ) : (
+        <>
+          <div className="w-full max-w-md mb-5">
+
+            <div className="aspect-[3/4] rounded-[32px] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden flex items-center justify-center">
+
+              {file ? (
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt="preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-center text-white">
+                  <div className="text-6xl mb-4">📸</div>
+
+                  <div className="font-semibold">
+                    Capture a Moment
+                  </div>
+
+                  <div className="text-sm text-purple-200 mt-2">
+                    Add a place to the map
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+          </div>
+
+          <div className="w-full max-w-md mb-4 text-center">
+
+            {location ? (
+              <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-500/20 border border-green-400/30 text-green-100 text-sm">
+                📍 Location Added
+              </div>
             ) : (
-              <div className="text-center text-white">
-                <div className="text-6xl mb-4">📸</div>
-
-                <div className="font-semibold">
-                  Capture a Moment
-                </div>
-
-                <div className="text-sm text-purple-200 mt-2">
-                  Add a place to the map
-                </div>
+              <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 border border-white/20 text-purple-100 text-sm">
+                No Location Yet
               </div>
             )}
 
           </div>
 
-        </div>
+          <div className="w-full max-w-md space-y-3">
 
-        <div className="w-full max-w-md mb-4 text-center">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) =>
+                setFile(e.target.files?.[0] ?? null)
+              }
+              className="hidden"
+              id="camera"
+            />
 
-          {location ? (
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-500/20 border border-green-400/30 text-green-100 text-sm">
-              📍 Location Added
+            <label
+              htmlFor="camera"
+              className="block w-full text-center py-4 rounded-3xl bg-white text-black font-bold cursor-pointer"
+            >
+              Take Photo
+            </label>
+
+            <button
+              onClick={handleAddLocation}
+              className="w-full py-4 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 text-white font-semibold"
+            >
+              Add Location
+            </button>
+
+            {locationError && (
+              <div className="rounded-3xl bg-red-500/20 border border-red-400/30 p-4 text-sm text-red-100">
+                {locationError === "permission-denied" && (
+                  <div>
+                    <div className="font-bold mb-2">Location access denied</div>
+                    <div className="text-xs">
+                      Safari: aA → Website Settings → Location → Allow
+                    </div>
+                    <div className="text-xs mt-1">
+                      Chrome/Firefox: Lock icon → Location → Allow
+                    </div>
+                  </div>
+                )}
+                {locationError === "geolocation-not-supported" && (
+                  <div>
+                    <div className="font-bold">Geolocation not supported</div>
+                    <div className="text-xs mt-1">Try a different browser or device</div>
+                  </div>
+                )}
+                {locationError === "position-unavailable" && (
+                  <div>
+                    <div className="font-bold">Unable to get your location</div>
+                    <div className="text-xs mt-1">Check your GPS connection and try again</div>
+                  </div>
+                )}
+                {locationError === "timeout" && (
+                  <div>
+                    <div className="font-bold">Location request timed out</div>
+                    <div className="text-xs mt-1">Try again or check your GPS signal</div>
+                  </div>
+                )}
+                {locationError === "unknown-error" && (
+                  <div>
+                    <div className="font-bold">Unable to get location</div>
+                    <div className="text-xs mt-1">Please try again</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <input
+              type="text"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Location name"
+              className="w-full py-4 px-4 rounded-3xl bg-white text-black font-medium outline-none"
+            />
+
+            <button
+              onClick={upload}
+              disabled={!file || !location || !caption.trim() || loading}
+              className="w-full py-4 rounded-3xl bg-white text-black font-bold disabled:opacity-40"
+            >
+              {loading ? "Uploading..." : "Share"}
+            </button>
+
+            <div className="text-center text-sm text-purple-100 pt-2">
+              {status}
             </div>
-          ) : (
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 border border-white/20 text-purple-100 text-sm">
-              No Location Yet
-            </div>
-          )}
 
-        </div>
-
-        <div className="w-full max-w-md space-y-3">
-
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) =>
-              setFile(e.target.files?.[0] ?? null)
-            }
-            className="hidden"
-            id="camera"
-          />
-
-          <label
-            htmlFor="camera"
-            className="block w-full text-center py-4 rounded-3xl bg-white text-black font-bold cursor-pointer"
-          >
-            Take Photo
-          </label>
-
-          <button
-            onClick={handleAddLocation}
-            className="w-full py-4 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 text-white font-semibold"
-          >
-            Add Location
-          </button>
-
-          <input
-            type="text"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Location name"
-            className="w-full py-4 px-4 rounded-3xl bg-white text-black font-medium outline-none"
-          />
-
-          <button
-            onClick={upload}
-            disabled={!file || !location || !caption.trim() || loading}
-            className="w-full py-4 rounded-3xl bg-white text-black font-bold disabled:opacity-40"
-          >
-            {loading ? "Uploading..." : "Share"}
-          </button>
-
-          <div className="text-center text-sm text-purple-100 pt-2">
-            {status}
           </div>
+        </>
+      )}
 
-          {status.includes("permission") && (
-          <div className="rounded-3xl bg-white text-black p-4 text-sm">
-            <div className="font-bold mb-2">
-              Enable Location Access
-            </div>
+      <div className="w-full max-w-5xl mt-12">
 
-            <div>
-              Safari → aA → Website Settings →
-              Location → Allow
-            </div>
-          </div>
-        )}
-
+        <div className="text-white text-center mb-4">
+          <h2 className="text-2xl font-bold">
+            Campus Map
+          </h2>
         </div>
-      </>
-    )}
 
-    <div className="w-full max-w-5xl mt-12">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[32px] p-4">
+          <PhotoMap photos={photos} />
+        </div>
 
-      <div className="text-white text-center mb-4">
-        <h2 className="text-2xl font-bold">
-          Campus Map
-        </h2>
-      </div>
-
-      <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[32px] p-4">
-        <PhotoMap photos={photos} />
       </div>
 
     </div>
-
-  </div>
-);
+  );
 }
