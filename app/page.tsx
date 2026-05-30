@@ -52,6 +52,7 @@ export default function Page() {
     loadPhotos();
   }, []);
 
+
   function getLocation(): Promise<Location> {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
@@ -60,26 +61,61 @@ export default function Page() {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
           }),
-        reject,
+        (err) => {
+          console.log(err);
+          reject(err);
+        },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000,
+          maximumAge: 0,
         }
       );
     });
   }
-
   async function handleAddLocation() {
+    alert("Button clicked");
+
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported");
+      setStatus("Geolocation not supported");
+      return;
+    }
+
     setStatus("Finding your spot...");
 
     try {
       const loc = await getLocation();
+
+      alert(
+        `Success: ${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`
+      );
+
       setLocation(loc);
       setStatus("Location locked in ✔");
-    } catch {
-      setStatus("Could not get location");
+    } catch (err: any) {
+      console.log(err);
+
+      alert(
+        JSON.stringify({
+          code: err?.code,
+          message: err?.message,
+        })
+      );
+
+      if (err?.code === 1) {
+        setStatus("Location permission denied");
+      } else {
+        setStatus(
+          err?.message || "Could not get location"
+        );
+      }
     }
   }
+
+
+
+
 
   async function upload() {
     if (!file || !location) return;
