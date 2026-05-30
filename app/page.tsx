@@ -1,65 +1,205 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+type Location = {
+  lat: number;
+  lng: number;
+};
+
+export default function Page() {
+  const [file, setFile] = useState<File | null>(null);
+  const [location, setLocation] = useState<Location | null>(null);
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [posted, setPosted] = useState(false);
+
+  function getLocation(): Promise<Location> {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          resolve({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          }),
+        reject,
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  }
+
+  async function handleAddLocation() {
+    setStatus("Finding your spot...");
+    try {
+      const loc = await getLocation();
+      setLocation(loc);
+      setStatus("Location locked in ✔");
+    } catch {
+      setStatus("Could not get location");
+    }
+  }
+
+  async function upload() {
+    if (!file || !location) return;
+
+    setLoading(true);
+    setStatus("Uploading...");
+
+    const fileName = `photo-${Date.now()}.jpg`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("photos")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      setStatus(uploadError.message);
+      setLoading(false);
+      return;
+    }
+
+    const imageUrl =
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}` +
+      `/storage/v1/object/public/photos/${fileName}`;
+
+    const { error: dbError } = await supabase.from("photos").insert({
+      image_url: imageUrl,
+      lat: location.lat,
+      lng: location.lng,
+      created_at: new Date().toISOString(),
+    });
+
+    if (dbError) {
+      setStatus(dbError.message);
+      setLoading(false);
+      return;
+    }
+
+    setStatus("Posted ✔");
+    setPosted(true);
+    setLoading(false);
+  }
+
+  function reset() {
+    setFile(null);
+    setLocation(null);
+    setStatus("");
+    setPosted(false);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-gradient-to-b from-sky-200 via-indigo-100 to-pink-100 flex flex-col items-center px-5 py-8">
+
+      {/* Header */}
+      <div className="w-full max-w-md text-center mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-indigo-900">
+          HELP ME MAP CAMPUS
+        </h1>
+        <p className="text-sm text-indigo-700 mt-1">
+          Snap a moment. Drop it on the map.
+        </p>
+      </div>
+
+      {/* Success state */}
+      {posted ? (
+        <div className="w-full max-w-md flex flex-col items-center space-y-4">
+
+          <div className="w-full aspect-[3/4] rounded-3xl overflow-hidden border border-white/50 bg-white shadow-xl flex items-center justify-center">
+            <div className="text-center space-y-2">
+              <div className="text-2xl">✔</div>
+              <div className="text-indigo-900 font-medium">
+                Posted to campus map
+              </div>
+              <div className="text-sm text-indigo-600">
+                Your photo is now live
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={reset}
+            className="w-full py-3 rounded-2xl bg-indigo-600 text-white font-medium shadow-md active:scale-[0.98] transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            Submit another?
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Preview */}
+          <div className="w-full max-w-md mb-6">
+            <div className="aspect-[3/4] rounded-3xl border border-white/60 bg-white shadow-xl overflow-hidden flex items-center justify-center">
+              {file ? (
+                <img
+                  src={URL.createObjectURL(file)}
+                  className="w-full h-full object-cover"
+                  alt="preview"
+                />
+              ) : (
+                <div className="text-indigo-400 text-sm">
+                  No photo yet
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="w-full max-w-md mb-3 text-center">
+            {location ? (
+              <div className="text-xs text-green-700 font-medium">
+                📍 Locked in
+              </div>
+            ) : (
+              <div className="text-xs text-indigo-500">
+                No location yet
+              </div>
+            )}
+          </div>
+
+          {/* Controls */}
+          <div className="w-full max-w-md space-y-3">
+
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="hidden"
+              id="camera"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+            <label
+              htmlFor="camera"
+              className="block w-full text-center py-3 rounded-2xl bg-white text-indigo-900 font-medium shadow-md"
+            >
+              Take Photo
+            </label>
+
+            <button
+              onClick={handleAddLocation}
+              className="w-full py-3 rounded-2xl bg-indigo-200 text-indigo-900 font-medium shadow-sm"
+            >
+              Add Location
+            </button>
+
+            <button
+              onClick={upload}
+              disabled={!file || !location || loading}
+              className="w-full py-3 rounded-2xl bg-indigo-600 text-white font-medium disabled:opacity-40 shadow-md"
+            >
+              {loading ? "Posting..." : "Upload to Map"}
+            </button>
+
+            <p className="text-center text-xs text-indigo-600">
+              {status}
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
