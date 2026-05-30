@@ -277,6 +277,19 @@ return (
             {status}
           </div>
 
+          {status.includes("permission") && (
+          <div className="rounded-3xl bg-white text-black p-4 text-sm">
+            <div className="font-bold mb-2">
+              Enable Location Access
+            </div>
+
+            <div>
+              Safari → aA → Website Settings →
+              Location → Allow
+            </div>
+          </div>
+        )}
+
         </div>
       </>
     )}
